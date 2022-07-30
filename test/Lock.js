@@ -1,4 +1,5 @@
 const main = async () => {
+  // deploy warranty contract
   const [deployer] = await hre.ethers.getSigners();
   const accountBalance = await deployer.getBalance();
 

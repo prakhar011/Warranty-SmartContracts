@@ -6,7 +6,7 @@ const main = async () => {
   console.log("Account balance: ", accountBalance.toString());
 
   const warrantyContractFactory = await hre.ethers.getContractFactory(
-    "warranty"
+    "Warranty"
   );
   const warrantyContract = await warrantyContractFactory.deploy();
   await warrantyContract.deployed();

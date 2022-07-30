@@ -7,13 +7,25 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "hardhat/console.sol";
 
+/**
+ * Implements ERC721 Token Standard, with storage based token URI management and Access Control.
+ */
 contract Warranty is ERC721URIStorage, AccessControl {
+    /**
+     * Seller role which will be to various sellers
+     * who will be given the rights to mint Warranty Nft.
+     * Admin will asign this role.
+     */
     bytes32 public constant SELLER_ROLE = keccak256("SELLER_ROLE");
-    using SafeMath for uint256;
+
+    using SafeMath for uint256; // safemath of uint256 to prevent overflow and underflows.
     using Strings for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
+    /**
+     * Initializes the contract by providing deployer DEFAULT_ADMIN_ROLE role.
+     */
     constructor() ERC721("Warranty Tokens", "WATT") {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -28,6 +40,7 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return super.supportsInterface(interfaceId);
     }
 
+    // Struct to store the details of the Nft.
     struct warrantyNFT {
         uint256 tokenId;
         string uri;
@@ -44,7 +57,14 @@ contract Warranty is ERC721URIStorage, AccessControl {
         address soldBy,
         uint256 validUntil
     );
+
+    // Mapping from {TokenId} to WarrantyNFT struct.
     mapping(uint256 => warrantyNFT) private _idToNft;
+
+    /**
+     * checks If the address {_from} has the rights to mint the nft,
+     * Only DEFAULT_ADMIN_ROLE and SELLER_ROLE can mint the nft.
+     */
     modifier canMint(address _from) {
         if (
             hasRole(SELLER_ROLE, _from) == true ||
@@ -56,6 +76,12 @@ contract Warranty is ERC721URIStorage, AccessControl {
         }
     }
 
+    /**
+     * This function will mint the nft and store the details in the mapping.
+     * @param _to The address to which the nft will be minted.
+     * @param tokenURI The ipfs uri of the nft.
+     * @param _minutesValid The time when the nft will be valid.
+     */
     function createWarranty(
         address _to,
         string memory tokenURI,
@@ -85,10 +111,17 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return newTokenId;
     }
 
+    /**
+     *  This Funtion can only be called by the DEFAULT_ADMIN_ROLE.
+     *  This function will assign the SELLER_ROLE to the address {_to}.
+     */
     function assignSeller(address _to) public {
         grantRole(SELLER_ROLE, _to);
     }
 
+    /**
+     * returns the Nfts Owned by {msg.sender}
+     */
     function fetchMyNFTs() public view returns (warrantyNFT[] memory) {
         uint totalItemCount = _tokenIds.current();
         uint itemCount = 0;
@@ -100,6 +133,10 @@ contract Warranty is ERC721URIStorage, AccessControl {
             }
         }
 
+        /**
+         * count the total number of nfts minted by {_by} which will be the size of returning array.
+         * because we cant store the array of nfts dynamically in memory.
+         */
         warrantyNFT[] memory items = new warrantyNFT[](itemCount);
         for (uint i = 0; i < totalItemCount; i++) {
             if (_idToNft[i + 1].owner == msg.sender) {
@@ -112,6 +149,10 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return items;
     }
 
+    /**
+     * This function will return the details of the nft.
+     * @param _tokenId The id of the nft.
+     */
     function fetchNFTbyTokenId(uint256 _tokenId)
         public
         view
@@ -121,6 +162,11 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return Item;
     }
 
+    /**
+     * gives the Nfts minted by {_by}
+     * @param _by address of the minter.
+     * @return warrantyNFT[] items The array of warrantyNFT.
+     */
     function fetchNFTsMintedBy(address _by)
         public
         view
@@ -129,13 +175,16 @@ contract Warranty is ERC721URIStorage, AccessControl {
         uint totalItemCount = _tokenIds.current();
         uint itemCount = 0;
         uint currentIndex = 0;
-
+        /**
+         * count the total number of nfts minted by {_by} which will be the size of returning array.
+         * because we cant store the array of nfts dynamically in memory.
+         */
         for (uint i = 0; i < totalItemCount; i++) {
             if (_idToNft[i + 1].mintedBy == _by) {
                 itemCount += 1;
             }
         }
-
+        // declare items array to be returned.
         warrantyNFT[] memory items = new warrantyNFT[](itemCount);
         for (uint i = 0; i < totalItemCount; i++) {
             if (_idToNft[i + 1].mintedBy == _by) {
@@ -148,6 +197,13 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return items;
     }
 
+    /**
+     * transfers the ownership of nft to {_to}
+     * can only be called by the owner of the nft.
+     * checks if Nft is valid or not and then transfers the ownership by calling {validateNFT}.
+     * @param _tokenId The id of the nft.
+     * @param _to The address to which the nft will be transferred.
+     */
     function resellWarrantyNft(uint256 _tokenId, address _to) public {
         require(
             _idToNft[_tokenId].owner == msg.sender,
@@ -159,6 +215,14 @@ contract Warranty is ERC721URIStorage, AccessControl {
         _transfer(msg.sender, _to, _tokenId);
     }
 
+    /**
+     * This function will check if the current time is
+     * greater than or equal to Expiry time of the warrantyNft.
+     * It will burn the nft if the current time is greater than or equal to Expiry time.
+     * anyone can call this function
+     * @param _tokenId The id of the nft.
+     * @return bool isValid The boolean value indicating if the nft is valid or not.
+     */
     function validateNft(uint256 _tokenId) public returns (bool) {
         require(_exists(_tokenId) == true, "Token does not exist");
         uint256 val = _idToNft[_tokenId].validUntil;
