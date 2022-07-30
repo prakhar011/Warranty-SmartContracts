@@ -81,6 +81,7 @@ contract Warranty is ERC721URIStorage, AccessControl {
      * @param _to The address to which the nft will be minted.
      * @param tokenURI The ipfs uri of the nft.
      * @param _minutesValid The time when the nft will be valid.
+     * @return tokenId The Id of the nft token minted.
      */
     function createWarranty(
         address _to,
@@ -90,8 +91,12 @@ contract Warranty is ERC721URIStorage, AccessControl {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
         _safeMint(_to, newTokenId);
-        _setTokenURI(newTokenId, tokenURI);
+        _setTokenURI(newTokenId, tokenURI); // set the ipfs token uri.
+        if (balanceOf(_to) >= 1) {
+            _minutesValid.add(129600); // If user already own any warrantyNft Give him extra warranty as a perk.
+        }
         uint256 t = block.timestamp + _minutesValid.mul(60);
+        // push nft data to id to Nft mapping. to be used later for listing purpose.
         _idToNft[newTokenId] = warrantyNFT(
             newTokenId,
             tokenURI,
@@ -227,7 +232,7 @@ contract Warranty is ERC721URIStorage, AccessControl {
         require(_exists(_tokenId) == true, "Token does not exist");
         uint256 val = _idToNft[_tokenId].validUntil;
         if (block.timestamp >= val) {
-            _burn(_tokenId);
+            _burn(_tokenId); // burn nft if warranty period is over
             _idToNft[_tokenId].owner = address(0);
             return false;
         } else {
