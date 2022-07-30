@@ -14,8 +14,8 @@ contract Warranty is ERC721URIStorage, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    constructor(address root) ERC721("Warranty Tokens", "WATT") {
-        _setupRole(DEFAULT_ADMIN_ROLE, root);
+    constructor() ERC721("Warranty Tokens", "WATT") {
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -55,28 +55,17 @@ contract Warranty is ERC721URIStorage, AccessControl {
             revert("You dont have the rights to create Warranty");
         }
     }
-    modifier isValid(uint256 _tokenId) {
-        uint256 val = _idToNft[_tokenId].validUntil;
-        if (block.timestamp >= val) {
-            _burn(_tokenId);
-            revert(
-                "Time Period for Warranty has been expired and it has been burned"
-            );
-        } else {
-            _;
-        }
-    }
 
     function createWarranty(
         address _to,
         string memory tokenURI,
-        uint256 _daysValid
+        uint256 _minutesValid
     ) public canMint(msg.sender) returns (uint256) {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
         _safeMint(_to, newTokenId);
         _setTokenURI(newTokenId, tokenURI);
-        uint256 t = block.timestamp + _daysValid.mul(25).mul(60).mul(60);
+        uint256 t = block.timestamp + _minutesValid.mul(60);
         _idToNft[newTokenId] = warrantyNFT(
             newTokenId,
             tokenURI,
@@ -123,6 +112,15 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return items;
     }
 
+    function fetchNFTbyTokenId(uint256 _tokenId)
+        public
+        view
+        returns (warrantyNFT memory)
+    {
+        warrantyNFT memory Item = _idToNft[_tokenId];
+        return Item;
+    }
+
     function fetchNFTsMintedBy(address _by)
         public
         view
@@ -150,24 +148,26 @@ contract Warranty is ERC721URIStorage, AccessControl {
         return items;
     }
 
-    function resellWarrantyNft(uint256 _tokenId, address _to)
-        public
-        isValid(_tokenId)
-    {
+    function resellWarrantyNft(uint256 _tokenId, address _to) public {
         require(
             _idToNft[_tokenId].owner == msg.sender,
             "Only item owner can perform this operation"
         );
+        require(validateNft(_tokenId) == true, "Warranty Expired");
         _idToNft[_tokenId].soldBy = msg.sender;
         _idToNft[_tokenId].owner = _to;
         _transfer(msg.sender, _to, _tokenId);
     }
 
-    function validateNft(uint256 _tokenId)
-        public
-        isValid(_tokenId)
-        returns (uint256)
-    {
-        return _idToNft[_tokenId].validUntil.sub(block.timestamp);
+    function validateNft(uint256 _tokenId) public returns (bool) {
+        require(_exists(_tokenId) == true, "Token does not exist");
+        uint256 val = _idToNft[_tokenId].validUntil;
+        if (block.timestamp >= val) {
+            _burn(_tokenId);
+            _idToNft[_tokenId].owner = address(0);
+            return false;
+        } else {
+            return true;
+        }
     }
 }
