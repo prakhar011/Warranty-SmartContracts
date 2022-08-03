@@ -46,7 +46,7 @@ contract Warranty is ERC721URIStorage, AccessControl {
         string uri;
         address mintedBy;
         address owner;
-        address soldBy; // remove this
+        address soldBy; 
         uint256 validUntil;
     }
     event NftWarrantyCreated(
