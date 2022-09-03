@@ -290,7 +290,9 @@ contract Warranty is ERC721URIStorage, AccessControl {
         );
         require(validateNft(_tokenId) == true, "Warranty Expired");
 
-        _idToNft[_tokenId].redemptionCount.add(1);
+        _idToNft[_tokenId].redemptionCount = _idToNft[_tokenId]
+            .redemptionCount
+            .add(1);
         string memory count = Strings.toString(
             _idToNft[_tokenId].redemptionLimit.sub(
                 _idToNft[_tokenId].redemptionCount
