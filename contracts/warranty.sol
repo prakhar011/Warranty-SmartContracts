@@ -280,12 +280,13 @@ contract Warranty is ERC721URIStorage, AccessControl {
     /**
      * this function first checks if the nft is valid or not.
      * if valid then it will mark it for redemption of the warranty.
+     * @param _tokenId The id of the nft.
+     *
      */
-
     function availWarranty(uint256 _tokenId) public returns (string memory) {
         require(
-            _idToNft[_tokenId].owner == msg.sender,
-            "Only item owner can perform this operation"
+            _idToNft[_tokenId].mintedBy == msg.sender,
+            "Only Seller can perform this operation"
         );
         require(validateNft(_tokenId) == true, "Warranty Expired");
 
