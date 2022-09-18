@@ -290,7 +290,9 @@ contract Warranty is ERC721URIStorage, AccessControl {
         );
         require(validateNft(_tokenId) == true, "Warranty Expired");
 
-        _idToNft[_tokenId].redemptionCount.add(1);
+        _idToNft[_tokenId].redemptionCount = _idToNft[_tokenId]
+            .redemptionCount
+            .add(1);
         string memory count = Strings.toString(
             _idToNft[_tokenId].redemptionLimit.sub(
                 _idToNft[_tokenId].redemptionCount
@@ -328,5 +330,16 @@ contract Warranty is ERC721URIStorage, AccessControl {
         } else {
             return true;
         }
+    }
+
+    /**
+     * This function will verify if the caller has the rights to mint the nft.
+     * @return bool indicating if the user has the rights to mint the nft.
+     */
+    function hasRights() public view returns (bool) {
+        return
+            hasRole(SELLER_ROLE, msg.sender) ||
+            hasRole(ADMIN_ROLE, msg.sender) ||
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 }
